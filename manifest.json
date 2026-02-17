@@ -1,0 +1,22 @@
+﻿{
+  "name": "Capteurs Mobile",
+  "short_name": "Capteurs",
+  "description": "Application de demo capteurs navigateur",
+  "start_url": "/html.html",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#1a1a2e",
+  "theme_color": "#e94560",
+  "icons": [
+    {
+      "src": "icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}
