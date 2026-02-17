@@ -28,6 +28,26 @@
 
     <div id="map"></div>
 
+    <!-- Modale création de pin -->
+    <div id="pin-modal" class="modal hidden">
+        <div class="modal-card">
+            <h3>Nouveau signalement</h3>
+            <form id="pin-form">
+                <input type="text" id="pin-title" placeholder="Titre du signalement..." required autocomplete="off">
+                <p class="modal-label">Catégorie</p>
+                <div id="cat-grid"></div>
+                <label class="toggle-row">
+                    <span>Partager avec le campus</span>
+                    <input type="checkbox" id="toggle-public" checked>
+                </label>
+                <div class="modal-actions">
+                    <button type="button" id="btn-cancel">Annuler</button>
+                    <button type="submit" id="btn-submit">Ajouter</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
     <script src="https://unpkg.com/leaflet.markercluster@1.4.1/dist/leaflet.markercluster.js"></script>
 
