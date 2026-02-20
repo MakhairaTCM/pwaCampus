@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <title>Génération des icônes - CampusPin</title>
+  <style>
+    body { font-family: sans-serif; padding: 2rem; background: #1a1a2e; color: #fff; }
+    h1 { color: #e94560; }
+    .previews { display: flex; gap: 2rem; flex-wrap: wrap; margin: 1rem 0; align-items: flex-end; }
+    .preview-item { text-align: center; }
+    canvas { border: 2px solid #e94560; border-radius: 8px; display: block; }
+    button {
+      background: #e94560; color: #fff; border: none;
+      padding: 0.8rem 1.5rem; border-radius: 8px;
+      cursor: pointer; font-size: 1rem; margin: 1rem 0;
+    }
+    p { color: #aaa; }
+    code { background: #333; padding: 2px 6px; border-radius: 4px; color: #e94560; }
+  </style>
+</head>
+<body>
+  <h1>📍 Générateur d'icônes CampusPin</h1>
+  <p>Ouvrez cette page dans un navigateur. Les icônes seront générées et téléchargées automatiquement.<br>
+     Placez ensuite les fichiers téléchargés dans le dossier <code>icons/</code>.</p>
+
+  <div class="previews" id="previews"></div>
+
+  <button onclick="generateAll()">🔄 Régénérer &amp; télécharger</button>
+
+  <script>
+    function drawIcon(canvas, size) {
+      canvas.width = canvas.height = size;
+      const ctx = canvas.getContext('2d');
+      const s = size / 192;
+
+      // Fond arrondi
+      const r = 24 * s;
+      ctx.fillStyle = '#1a1a2e';
+      ctx.beginPath();
+      ctx.moveTo(r, 0);
+      ctx.lineTo(size - r, 0);
+      ctx.arcTo(size, 0, size, r, r);
+      ctx.lineTo(size, size - r);
+      ctx.arcTo(size, size, size - r, size, r);
+      ctx.lineTo(r, size);
+      ctx.arcTo(0, size, 0, size - r, r);
+      ctx.lineTo(0, r);
+      ctx.arcTo(0, 0, r, 0, r);
+      ctx.closePath();
+      ctx.fill();
+
+      // Corps du pin (cercle)
+      const cx = size / 2, cy = 80 * s, pr = 36 * s;
+      ctx.fillStyle = '#e94560';
+      ctx.beginPath();
+      ctx.arc(cx, cy, pr, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Cercle intérieur blanc
+      ctx.fillStyle = '#fff';
+      ctx.beginPath();
+      ctx.arc(cx, cy, 16 * s, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Pointe du pin
+      ctx.fillStyle = '#e94560';
+      ctx.beginPath();
+      ctx.moveTo(cx, 148 * s);
+      ctx.lineTo(74 * s, 110 * s);
+      ctx.lineTo(118 * s, 110 * s);
+      ctx.closePath();
+      ctx.fill();
+    }
+
+    function generateAll() {
+      const container = document.getElementById('previews');
+      container.innerHTML = '';
+
+      [192, 512].forEach(size => {
+        const canvas = document.createElement('canvas');
+        drawIcon(canvas, size);
+
+        // Prévisualisation (affichée en plus petit)
+        const displayCanvas = document.createElement('canvas');
+        drawIcon(displayCanvas, Math.min(size, 128));
+        const item = document.createElement('div');
+        item.className = 'preview-item';
+        item.innerHTML = `<p>icon-${size}.png</p>`;
+        item.appendChild(displayCanvas);
+        container.appendChild(item);
+
+        // Téléchargement automatique
+        const a = document.createElement('a');
+        a.download = `icon-${size}.png`;
+        a.href = canvas.toDataURL('image/png');
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+      });
+
+      alert('✅ Icônes téléchargées ! Placez icon-192.png et icon-512.png dans le dossier icons/');
+    }
+
+    // Auto-génération au chargement
+    window.addEventListener('load', generateAll);
+  </script>
+</body>
+</html>

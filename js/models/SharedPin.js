@@ -7,10 +7,17 @@ export class SharedPin extends Pin {
         const category = Object.values(CATEGORIES).find(c => c.id === apiData.categorie) || CATEGORIES.AUTRE;
         const author   = { id: apiData.authorId, username: apiData.authorName };
 
-        super({ id: apiData.id, title: apiData.title, position: { lat: apiData.lat, lng: apiData.lng }, category }, author);
+        super({
+            id:          apiData.id,
+            title:       apiData.title,
+            description: apiData.description ?? "",
+            position:    { lat: apiData.lat, lng: apiData.lng },
+            category,
+        }, author);
 
-        this.serverId = apiData.id;
-        this.authorId = apiData.authorId;
+        this.serverId  = apiData.id;
+        this.authorId  = apiData.authorId;
+        if (apiData.createdAt) this.createdAt = new Date(apiData.createdAt);
     }
 
     // Les pins partagés viennent de l'API : save() est une no-op

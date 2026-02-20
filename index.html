@@ -4,42 +4,118 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Campus UTTOP Connect</title>
-    
+
+    <!-- PWA -->
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#e94560">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="CampusPin">
+    <link rel="apple-touch-icon" href="icons/icon-192.png">
 
+    <!-- Leaflet -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="">
     <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.4.1/dist/MarkerCluster.css" />
     <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.4.1/dist/MarkerCluster.Default.css" />
-    
+
     <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
 
+    <!-- ── Overlay UI principal ── -->
     <div id="ui-overlay">
         <div id="info-box">
             <h3>UTTOP Connect</h3>
             <p id="status">Démarrage...</p>
             <div id="user-role" class="badge">--</div>
         </div>
-        
-        <button id="btn-sos" class="hidden">🚨 SOS</button>
+
+        <!-- Bannière hors-ligne -->
+        <div id="offline-banner" class="hidden">📴 Hors ligne — cache utilisé</div>
+
+        <!-- Bannière signalements urgents -->
+        <div id="urgent-banner" class="hidden">
+            <span id="urgent-banner-text"></span>
+            <button id="btn-urgent-see">Voir</button>
+            <button id="btn-urgent-close" aria-label="Fermer">✕</button>
+        </div>
+
+        <!-- Bouton "Mes pins" (historique personnel, haut gauche) -->
+        <button id="btn-my-pins" title="Mes pins">📋<span id="my-pins-count" class="hidden"></span></button>
+
+        <!-- Indicateur auto-refresh (bas centre) -->
+        <div id="refresh-pill" class="hidden">
+            <span>↻</span><span id="refresh-pill-text"></span>
+        </div>
+
+        <!-- Bouton Paramètres (haut droite) -->
+        <button id="btn-settings" title="Personnaliser l'interface">⚙️</button>
+
+        <!-- Bouton : recentrer sur ma position GPS -->
+        <button id="btn-locate" title="Recentrer sur ma position">🎯</button>
+
+        <!-- Bouton : créer un pin à ma position GPS -->
+        <button id="btn-pin-here" title="Créer un pin ici (ma position)">📍</button>
+
+        <!-- Bouton SOS -->
+        <button id="btn-sos">🚨 SOS</button>
+
+        <!-- Bouton Recherche (bas centre) -->
+        <button id="btn-search" title="Rechercher / Filtrer les pins">🔍</button>
+
+        <!-- Bannière mode repositionnement -->
+        <div id="reposition-banner" class="hidden">
+            📍 Cliquez sur la carte pour repositionner — <strong>Échap</strong> pour annuler
+        </div>
+
+        <!-- Barre mode édition du layout -->
+        <div id="layout-edit-bar" class="hidden">
+            <span class="layout-edit-hint">✋ Faites glisser les éléments où vous voulez</span>
+            <button id="btn-layout-done">✓ Terminer</button>
+        </div>
     </div>
 
+    <!-- ── Carte Leaflet ── -->
     <div id="map"></div>
 
-    <!-- Modale création de pin -->
+    <!-- ── Boussole / Direction ── -->
+    <div id="compass-overlay" class="hidden" title="Direction vers le pin sélectionné">
+        <div id="compass-arrow">↑</div>
+        <div id="compass-dist">--</div>
+    </div>
+
+    <!-- ── Modale création de pin ── -->
     <div id="pin-modal" class="modal hidden">
         <div class="modal-card">
             <h3>Nouveau signalement</h3>
             <form id="pin-form">
                 <input type="text" id="pin-title" placeholder="Titre du signalement..." required autocomplete="off">
+
+                <textarea id="pin-description" placeholder="Description (optionnelle)..." rows="2"></textarea>
+
                 <p class="modal-label">Catégorie</p>
                 <div id="cat-grid"></div>
+
+                <!-- ── Section caméra (MediaDevices API) ── -->
+                <div id="camera-section">
+                    <div id="camera-preview-wrap" class="hidden">
+                        <video id="camera-video" autoplay playsinline muted></video>
+                        <canvas id="camera-canvas" class="hidden"></canvas>
+                        <img id="camera-photo" class="hidden" alt="Photo capturée">
+                    </div>
+                    <div class="camera-actions">
+                        <button type="button" id="btn-open-camera">📷 Photo</button>
+                        <button type="button" id="btn-capture" class="hidden">⬤ Capturer</button>
+                        <button type="button" id="btn-retake" class="hidden">🔄 Reprendre</button>
+                    </div>
+                </div>
+
                 <label class="toggle-row">
                     <span>Partager avec le campus</span>
                     <input type="checkbox" id="toggle-public" checked>
                 </label>
+
                 <div class="modal-actions">
                     <button type="button" id="btn-cancel">Annuler</button>
                     <button type="submit" id="btn-submit">Ajouter</button>
@@ -48,8 +124,171 @@
         </div>
     </div>
 
+    <!-- ── Panneau Recherche / Filtrage ── -->
+    <div id="search-overlay" class="full-overlay hidden">
+        <div class="search-panel">
+            <div class="search-header">
+                <div class="search-input-wrap">
+                    <span class="search-prefix">🔍</span>
+                    <input type="text" id="search-input" placeholder="Rechercher un pin..." autocomplete="off">
+                    <button id="btn-search-close" class="search-close-btn">✕</button>
+                </div>
+                <div id="cat-filters" class="cat-filter-row"></div>
+            </div>
+            <p id="search-count" class="search-count"></p>
+            <div id="search-results" class="search-results"></div>
+        </div>
+    </div>
+
+    <!-- ── Modal Urgences (SOS) ── -->
+    <div id="sos-overlay" class="full-overlay hidden">
+        <div class="sos-sheet">
+            <div class="sos-title">🚨 Urgences</div>
+            <p class="sos-sub">Appuyez sur un numéro pour appeler directement</p>
+            <div class="sos-contacts">
+                <a href="tel:15"  class="sos-contact"><span class="sos-ico">🏥</span><div class="sos-contact-info"><strong>SAMU</strong><small>Urgences médicales</small></div><span class="sos-num">15</span></a>
+                <a href="tel:18"  class="sos-contact"><span class="sos-ico">🚒</span><div class="sos-contact-info"><strong>Pompiers</strong><small>Incendie / Secours</small></div><span class="sos-num">18</span></a>
+                <a href="tel:17"  class="sos-contact"><span class="sos-ico">👮</span><div class="sos-contact-info"><strong>Police</strong><small>Sécurité publique</small></div><span class="sos-num">17</span></a>
+                <a href="tel:112" class="sos-contact"><span class="sos-ico">🌍</span><div class="sos-contact-info"><strong>Urgences EU</strong><small>Numéro européen</small></div><span class="sos-num">112</span></a>
+                <a href="tel:15"  class="sos-contact sos-contact-campus"><span class="sos-ico">🏛️</span><div class="sos-contact-info"><strong>Médecin campus</strong><small>SAMU si urgence</small></div><span class="sos-num">15</span></a>
+            </div>
+            <div class="sos-position-box">
+                <span class="sos-position-label">📍 Votre position GPS</span>
+                <span id="sos-coords">Localisation en cours…</span>
+            </div>
+            <button id="btn-sos-close" class="sos-close-btn">Fermer</button>
+        </div>
+    </div>
+
+    <!-- ── Signalement d'un pin ── -->
+    <div id="report-overlay" class="full-overlay hidden">
+        <div class="report-sheet">
+            <div class="report-title">⚑ Signaler ce pin</div>
+            <p class="report-sub">Pourquoi souhaitez-vous signaler ce pin ?</p>
+            <div class="report-options">
+                <label class="report-option"><input type="radio" name="report-reason" value="obsolete"><span>🕐 Obsolète / problème résolu</span></label>
+                <label class="report-option"><input type="radio" name="report-reason" value="location"><span>📍 Mauvaise localisation</span></label>
+                <label class="report-option"><input type="radio" name="report-reason" value="inappropriate"><span>🚫 Contenu inapproprié</span></label>
+                <label class="report-option"><input type="radio" name="report-reason" value="other"><span>💬 Autre raison</span></label>
+            </div>
+            <div class="report-actions">
+                <button id="report-cancel" class="report-btn-cancel">Annuler</button>
+                <button id="report-submit" class="report-btn-submit">Signaler</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ── Mes pins (historique personnel) ── -->
+    <div id="my-pins-overlay" class="full-overlay hidden">
+        <div class="mypins-panel">
+            <div class="mypins-header">
+                <span class="mypins-title">📋 Mes pins</span>
+                <button id="btn-my-pins-close" class="search-close-btn">✕</button>
+            </div>
+            <div id="my-pins-content" class="mypins-content"></div>
+        </div>
+    </div>
+
+    <!-- ── Paramètres / Personnalisation ── -->
+    <div id="settings-overlay" class="full-overlay hidden">
+        <div class="settings-panel">
+            <div class="settings-header">
+                <span class="settings-title">⚙️ Personnalisation</span>
+                <button id="btn-settings-close" class="search-close-btn">✕</button>
+            </div>
+            <div class="settings-content">
+                <p class="settings-section-title">Visibilité des éléments</p>
+                <label class="settings-row">
+                    <span>ℹ️ Boîte d'info</span>
+                    <span class="ui-toggle"><input type="checkbox" id="pref-infobox" checked><span class="ui-toggle-track"></span></span>
+                </label>
+                <label class="settings-row">
+                    <span>🚨 Bouton SOS</span>
+                    <span class="ui-toggle"><input type="checkbox" id="pref-sos" checked><span class="ui-toggle-track"></span></span>
+                </label>
+                <label class="settings-row">
+                    <span>🔍 Bouton Recherche</span>
+                    <span class="ui-toggle"><input type="checkbox" id="pref-search" checked><span class="ui-toggle-track"></span></span>
+                </label>
+                <label class="settings-row">
+                    <span>📋 Mes pins</span>
+                    <span class="ui-toggle"><input type="checkbox" id="pref-mypins" checked><span class="ui-toggle-track"></span></span>
+                </label>
+                <label class="settings-row">
+                    <span>🧭 Boussole</span>
+                    <span class="ui-toggle"><input type="checkbox" id="pref-compass" checked><span class="ui-toggle-track"></span></span>
+                </label>
+
+                <p class="settings-section-title">Main dominante</p>
+                <div class="handedness-row">
+                    <button class="handedness-btn active" data-hand="right">🫱 Main droite</button>
+                    <button class="handedness-btn" data-hand="left">🫲 Main gauche</button>
+                </div>
+
+                <p class="settings-section-title">Disposition</p>
+                <button id="btn-layout-edit" class="settings-layout-btn">✋ Réorganiser librement</button>
+
+                <button id="btn-settings-reset" class="settings-reset-btn">↺ Tout restaurer par défaut</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ── Confirm dialog (bottom-sheet) ── -->
+    <div id="confirm-overlay" class="confirm-overlay hidden">
+        <div class="confirm-sheet">
+            <div class="confirm-icon-big" id="confirm-icon">🗑️</div>
+            <p class="confirm-title" id="confirm-title">Supprimer ce pin ?</p>
+            <p class="confirm-sub"   id="confirm-sub">Cette action est irréversible</p>
+            <div class="confirm-btns">
+                <button class="confirm-btn confirm-btn-cancel" id="confirm-cancel">Annuler</button>
+                <button class="confirm-btn confirm-btn-ok"     id="confirm-ok">Supprimer</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ── Scripts ── -->
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
     <script src="https://unpkg.com/leaflet.markercluster@1.4.1/dist/leaflet.markercluster.js"></script>
+
+    <script>
+        // ── Enregistrement du Service Worker ──
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('./sw.js')
+                .then(reg => {
+                    console.log('[App] Service Worker enregistré :', reg.scope);
+                    // Écouter les messages du SW (ex: sync)
+                    navigator.serviceWorker.addEventListener('message', (event) => {
+                        if (event.data?.type === 'SYNC_PENDING_PINS') {
+                            window.dispatchEvent(new CustomEvent('sw-sync-request'));
+                        }
+                    });
+                })
+                .catch(err => console.error('[App] SW erreur :', err));
+        }
+
+        // ── Indicateur en ligne / hors ligne ──
+        const offlineBanner = document.getElementById('offline-banner');
+        function updateOnlineStatus() {
+            if (navigator.onLine) {
+                offlineBanner.classList.add('hidden');
+                // Déclencher la synchronisation des pins en attente
+                window.dispatchEvent(new CustomEvent('app-online'));
+                // Demander un background sync au SW
+                if ('serviceWorker' in navigator) {
+                    navigator.serviceWorker.ready.then(sw => {
+                        if ('sync' in sw) {
+                            sw.sync.register('sync-pending-pins').catch(() => {});
+                        }
+                    });
+                }
+            } else {
+                offlineBanner.classList.remove('hidden');
+            }
+        }
+        window.addEventListener('offline', updateOnlineStatus);
+        window.addEventListener('online', updateOnlineStatus);
+        updateOnlineStatus();
+    </script>
 
     <script type="module" src="js/app.js"></script>
 </body>
